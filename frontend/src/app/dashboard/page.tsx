@@ -124,6 +124,8 @@ export default function DashboardPage() {
         }
     };
 
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-zinc-400 text-sm">
@@ -133,15 +135,45 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen flex bg-[#09090b]">
+        <div className="min-h-screen flex flex-col md:flex-row bg-[#09090b]">
+            {/* Mobile Header Bar */}
+            <header className="flex md:hidden items-center justify-between p-4 bg-zinc-950/60 border-b border-zinc-900/80 backdrop-blur-md sticky top-0 z-40">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-bold text-white shadow-md">
+                        co
+                    </div>
+                    <span className="font-bold text-lg text-white">cofounder.ai</span>
+                </div>
+                <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/30 text-xs font-semibold transition-colors"
+                >
+                    {isMobileMenuOpen ? "✕ Close" : "☰ Menu"}
+                </button>
+            </header>
+
             {/* Sidebar */}
-            <aside className="w-64 sidebar-gradient p-6 flex flex-col justify-between hidden md:flex">
+            <aside className={`${
+                isMobileMenuOpen
+                    ? "fixed inset-0 z-50 bg-[#09090b]/95 backdrop-blur-md p-6 flex flex-col justify-between overflow-y-auto"
+                    : "w-64 sidebar-gradient p-6 flex flex-col justify-between hidden md:flex"
+            }`}>
                 <div className="space-y-8">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-bold text-white shadow-md">
-                            co
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-bold text-white shadow-md">
+                                co
+                            </div>
+                            <span className="font-bold text-lg text-white">cofounder.ai</span>
                         </div>
-                        <span className="font-bold text-lg text-white">cofounder.ai</span>
+                        {isMobileMenuOpen && (
+                            <button
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="text-zinc-550 hover:text-white p-2 text-md transition-colors"
+                            >
+                                ✕
+                            </button>
+                        )}
                     </div>
 
                     <div className="space-y-4">
@@ -150,7 +182,10 @@ export default function DashboardPage() {
                             {workspaces.map((ws) => (
                                 <button
                                     key={ws.id}
-                                    onClick={() => setSelectedWorkspace(ws)}
+                                    onClick={() => {
+                                        setSelectedWorkspace(ws);
+                                        setIsMobileMenuOpen(false);
+                                    }}
                                     className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-colors ${
                                         selectedWorkspace?.id === ws.id
                                             ? "bg-purple-600/10 text-purple-400 border border-purple-500/20"
