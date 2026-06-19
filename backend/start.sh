@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Force Celery to run under root user inside Docker container
+export C_FORCE_ROOT=1
+
 # Start Celery worker in the background
 echo "Starting Celery Worker..."
 celery -A app.tasks.main.celery_app worker --loglevel=info &
