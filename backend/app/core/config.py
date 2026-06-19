@@ -1,6 +1,6 @@
 import os
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -67,6 +67,16 @@ class Settings(BaseSettings):
                 url = urlunparse(parsed)
             return url
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    @model_validator(mode="after")
+    def clean_redis_url(self) -> "Settings":
+        if self.REDIS_URL and self.REDIS_URL.startswith("rediss://"):
+            if "ssl_cert_reqs" not in self.REDIS_URL:
+                if "?" in self.REDIS_URL:
+                    self.REDIS_URL += "&ssl_cert_reqs=none"
+                else:
+                    self.REDIS_URL += "?ssl_cert_reqs=none"
+        return self
 
 
 settings = Settings()
