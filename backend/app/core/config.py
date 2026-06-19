@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = Field(default="localhost")
     QDRANT_PORT: int = Field(default=6333)
     QDRANT_URL: str = Field(default="http://localhost:6333")
+    QDRANT_API_KEY: Optional[str] = Field(default=None)
 
     # Security
     JWT_SECRET: str = Field(default="42c4b8159670f5e71465ad6df9c5332f1a6c429ea3e4d9ebc65633a681c3c9be")

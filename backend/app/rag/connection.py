@@ -8,11 +8,17 @@ logger = logging.getLogger("app.rag.connection")
 
 class QdrantManager:
     def __init__(self):
-        # Initialize the sync/async client
-        self.client = QdrantClient(
-            host=settings.QDRANT_HOST,
-            port=settings.QDRANT_PORT
-        )
+        # Initialize client supporting cloud url and api_key if provided
+        if settings.QDRANT_API_KEY:
+            self.client = QdrantClient(
+                url=settings.QDRANT_URL,
+                api_key=settings.QDRANT_API_KEY
+            )
+        else:
+            self.client = QdrantClient(
+                host=settings.QDRANT_HOST,
+                port=settings.QDRANT_PORT
+            )
         self.collection_name = "cofounder_knowledge"
         self._init_collection()
 
