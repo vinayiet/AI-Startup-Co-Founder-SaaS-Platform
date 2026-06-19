@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     ENV: str = Field(default="development")
     DEBUG: bool = Field(default=True)
     PROJECT_NAME: str = Field(default="AI Startup Co-Founder")
+    ALLOWED_ORIGINS: list[str] = Field(default=["http://localhost:3000", "http://localhost:3001"])
 
     # Database
     POSTGRES_USER: str = Field(default="postgres")
