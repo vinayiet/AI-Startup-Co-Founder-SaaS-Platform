@@ -150,7 +150,9 @@ export default function CopilotChatWorkspace() {
         }
 
         const token = localStorage.getItem("token") || "";
-        const wsUrl = `ws://localhost:8000/api/v1/copilot/sessions/${sessionId}/chat?token=${token}`;
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+        const wsBase = apiBaseUrl.replace(/^http/, "ws");
+        const wsUrl = `${wsBase}/copilot/sessions/${sessionId}/chat?token=${token}`;
         
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
