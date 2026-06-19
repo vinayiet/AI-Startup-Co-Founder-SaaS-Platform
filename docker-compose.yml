@@ -1,0 +1,152 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: cofounder-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cofounder
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cofounder"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cofounder-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: cofounder-qdrant
+    restart: always
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cofounder-backend
+    restart: always
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=cofounder
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/cofounder
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_URL=http://qdrant:6333
+      - JWT_SECRET=42c4b8159670f5e71465ad6df9c5332f1a6c429ea3e4d9ebc65633a681c3c9be
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-mock-openai-key}
+      - GROK_API_KEY=${GROK_API_KEY:-mock-grok-key}
+      - COHERE_API_KEY=${COHERE_API_KEY:-mock-cohere-key}
+      - AGENTOPS_API_KEY=${AGENTOPS_API_KEY:-mock-agentops-key}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-mock-langsmith-key}
+      - LANGCHAIN_TRACING_V2=false
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cofounder-worker
+    command: celery -A app.tasks.main.celery_app worker --loglevel=info
+    restart: always
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=cofounder
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/cofounder
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_URL=http://qdrant:6333
+      - JWT_SECRET=42c4b8159670f5e71465ad6df9c5332f1a6c429ea3e4d9ebc65633a681c3c9be
+      - JWT_ALGORITHM=HS256
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-mock-openai-key}
+      - GROK_API_KEY=${GROK_API_KEY:-mock-grok-key}
+      - COHERE_API_KEY=${COHERE_API_KEY:-mock-cohere-key}
+      - AGENTOPS_API_KEY=${AGENTOPS_API_KEY:-mock-agentops-key}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-mock-langsmith-key}
+      - LANGCHAIN_TRACING_V2=false
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cofounder-prometheus
+    restart: always
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cofounder-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
