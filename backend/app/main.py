@@ -33,11 +33,11 @@ async def lifespan(app: FastAPI):
     setup_logging()
     
     # Start Celery worker subprocess
-    logger.info("Starting Celery worker subprocess...")
+    logger.info("Starting Celery worker subprocess (concurrency=1)...")
     celery_process = None
     try:
         celery_process = subprocess.Popen(
-            ["celery", "-A", "app.tasks.main.celery_app", "worker", "--loglevel=info"],
+            ["celery", "-A", "app.tasks.main.celery_app", "worker", "--loglevel=info", "--concurrency=1"],
             env={**os.environ, "C_FORCE_ROOT": "1"}
         )
         logger.info(f"Celery worker subprocess started with PID {celery_process.pid}")

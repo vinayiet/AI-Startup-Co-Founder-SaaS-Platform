@@ -17,4 +17,6 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     worker_prefetch_multiplier=1,
+    worker_concurrency=1,
+    worker_max_tasks_per_child=5,  # Recycle worker processes after 5 tasks to prevent memory leaks
 )
