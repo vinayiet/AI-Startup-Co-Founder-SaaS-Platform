@@ -51,9 +51,20 @@ class Settings(BaseSettings):
     def get_db_url(self) -> str:
         if self.DATABASE_URL:
             # Enforce asyncpg driver for async connection
-            if self.DATABASE_URL.startswith("postgresql://"):
-                return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-            return self.DATABASE_URL
+            url = self.DATABASE_URL
+            if url.startswith("postgresql://"):
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            
+            # Remove sslmode query parameter if present, because asyncpg doesn't support it
+            if "sslmode=" in url:
+                from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                parsed = urlparse(url)
+                query = parse_qs(parsed.query)
+                query.pop("sslmode", None)
+                new_query = urlencode(query, doseq=True)
+                parsed = parsed._replace(query=new_query)
+                url = urlunparse(parsed)
+            return url
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
