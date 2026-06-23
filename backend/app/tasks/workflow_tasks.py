@@ -74,20 +74,7 @@ async def _run_workflow_async(run_id: str):
             if final_state.get("current_step") == "Completed":
                 run.status = "completed"
                 # Compile report sections
-                sections = {
-                    "idea_analysis": final_state.get("idea_analysis"),
-                    "market_research": final_state.get("market_research"),
-                    "competitor_intelligence": final_state.get("competitor_intelligence"),
-                    "reality_check": final_state.get("reality_validator_report"),
-                    "technical_architecture": final_state.get("technical_architecture"),
-                    "mvp_roadmap": final_state.get("mvp_roadmap"),
-                    "financial_projections": final_state.get("financial_projections"),
-                    "marketing_strategy": final_state.get("marketing_strategy"),
-                    "risk_analysis": final_state.get("risk_analysis"),
-                    "pitch_deck": final_state.get("pitch_deck"),
-                    "moderator_report": final_state.get("moderator_report"),
-                    "evaluation_report": final_state.get("evaluation_report")
-                }
+                sections = final_state.get("report", {}).get("compiled_sections", {})
                  # Save final report
                 report = Report(
                     project_id=project.id,

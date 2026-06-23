@@ -41,7 +41,7 @@ async def reality_validator_node(state: AgentState) -> AgentState:
         "1. Identify at least 3 critical assumptions that are likely to fail.\n"
         "2. Provide a realistic assessment of timing (e.g. Saturated, Too Early, Too Late) with 0-100 confidence.\n"
         "3. Estimate customer acquisition difficulty and provide a realistic CAC range in local currency (e.g., INR ₹).\n"
-        "4. Calculate an overall viability score from 0 to 100 and a letter grade (A to F, where 90-100=Excellent, 80-89=Strong, 70-79=Promising, 60-69=Risky, Below 60=Weak).\n"
+        "4. Provide a rating from 1 to 10 for each of the core assessment dimensions (fmf, timing, competition, acquisition, revenue, and technical feasibility).\n"
         "5. Recommend concrete pivots, repositioning opportunities, and MVP scope reductions.\n\n"
         f"Live Web Search Context on Failure Risks:\n{web_context}\n\n"
         f"Framework Context:\n{rag_context}\n\n"
@@ -54,17 +54,20 @@ async def reality_validator_node(state: AgentState) -> AgentState:
         '  },\n'
         '  "market_timing": {\n'
         '    "timing": "Saturated / Too Early / Too Late / Emerging Trend",\n'
+        '    "score": 1-10,\n'
         '    "confidence": 0-100,\n'
         '    "analysis": "detailed timing analysis."\n'
         '  },\n'
         '  "competition_pressure": {\n'
         '    "competition_score": 1-10,\n'
+        '    "score": 1-10,\n'
         '    "switching_cost": "Low/Medium/High with details",\n'
         '    "differentiation_strength": "Low/Medium/High with details",\n'
         '    "risks": ["risk 1", "risk 2"]\n'
         '  },\n'
         '  "customer_acquisition": {\n'
         '    "difficulty": "Low/Medium/High with details",\n'
+        '    "score": 1-10,\n'
         '    "estimated_cac": "Range in INR (₹) or USD ($)",\n'
         '    "recommended_channels": ["channel 1", "channel 2"],\n'
         '    "analysis": "detailed customer acquisition analysis."\n'
@@ -76,16 +79,14 @@ async def reality_validator_node(state: AgentState) -> AgentState:
         '  },\n'
         '  "technical_execution": {\n'
         '    "complexity": "Low/Medium/High with details",\n'
+        '    "score": 1-10,\n'
         '    "risk_level": "Low/Medium/High with details",\n'
         '    "concerns": ["concern 1", "concern 2"]\n'
         '  },\n'
         '  "viability": {\n'
-        '    "overall_score": 0-100,\n'
-        '    "grade": "A-F",\n'
         '    "summary": "detailed summary of viability."\n'
         '  },\n'
         '  "failure_probability_engine": {\n'
-        '    "failure_probability": 0-100,\n'
         '    "confidence": 0-100,\n'
         '    "top_failure_reasons": ["reason 1", "reason 2"]\n'
         '  },\n'
@@ -98,7 +99,17 @@ async def reality_validator_node(state: AgentState) -> AgentState:
         "}"
     )
 
-    user_prompt = f"Startup Idea: {idea}\nCategory: {category}"
+    user_prompt = (
+        f"Startup Idea: {idea}\n"
+        f"Category/Industry: {category}\n"
+        f"Proposed Business Model: {state.get('business_model', 'N/A')}\n"
+        f"Target Customer Base: {state.get('target_users', 'N/A')}\n"
+        f"Market Sizing Assumptions:\n"
+        f"- TAM: {state.get('tam', 'N/A')}\n"
+        f"- SAM: {state.get('sam', 'N/A')}\n"
+        f"- SOM: {state.get('som', 'N/A')}\n"
+        f"Competitors pricing & positioning: {json.dumps(state.get('competitors', []), separators=(',', ':'))}"
+    )
 
     response_text = await call_agent_llm(
         system_prompt=system_prompt,
@@ -111,9 +122,43 @@ async def reality_validator_node(state: AgentState) -> AgentState:
     except Exception as e:
         raise ValueError(f"Failed to parse JSON response from Reality Validator LLM: {response_text}. Error: {e}")
 
-    state["viability_score"] = float(data.get("viability", {}).get("overall_score", 0))
-    state["viability_grade"] = str(data.get("viability", {}).get("grade", "F"))
-    state["failure_probability"] = float(data.get("failure_probability_engine", {}).get("failure_probability", 0))
+    # Deterministic scoring calculation
+    fmf = float(data.get("founder_market_fit", {}).get("score", 5))
+    timing = float(data.get("market_timing", {}).get("score", 5))
+    comp = float(data.get("competition_pressure", {}).get("score", 5))
+    cac = float(data.get("customer_acquisition", {}).get("score", 5))
+    rev = float(data.get("revenue_validation", {}).get("realism_score", 5))
+    tech = float(data.get("technical_execution", {}).get("score", 5))
+
+    # Calculate weighted viability score (out of 100)
+    # Weights: FMF 20%, Timing 15%, Comp 15%, CAC 20%, Rev 15%, Tech 15%
+    viability_score = round((fmf * 0.20 + timing * 0.15 + comp * 0.15 + cac * 0.20 + rev * 0.15 + tech * 0.15) * 10.0, 1)
+    failure_probability = round(100.0 - viability_score, 1)
+
+    if viability_score >= 90:
+        grade = "A"
+    elif viability_score >= 80:
+        grade = "B"
+    elif viability_score >= 70:
+        grade = "C"
+    elif viability_score >= 60:
+        grade = "D"
+    else:
+        grade = "F"
+
+    # Inject calculated scores back into structures
+    if "viability" not in data:
+        data["viability"] = {}
+    data["viability"]["overall_score"] = viability_score
+    data["viability"]["grade"] = grade
+
+    if "failure_probability_engine" not in data:
+        data["failure_probability_engine"] = {}
+    data["failure_probability_engine"]["failure_probability"] = failure_probability
+
+    state["viability_score"] = viability_score
+    state["viability_grade"] = grade
+    state["failure_probability"] = failure_probability
     state["top_failure_reasons"] = list(data.get("failure_probability_engine", {}).get("top_failure_reasons", []))
     state["critical_assumptions"] = list(data.get("critical_assumptions", []))
     state["recommended_pivots"] = data.get("pivots", {})
@@ -121,5 +166,5 @@ async def reality_validator_node(state: AgentState) -> AgentState:
 
     state["current_step"] = "Technical Architect"
 
-    await append_run_log(run_id, "Reality Validator stress-testing completed.")
+    await append_run_log(run_id, f"Reality Validator stress-testing completed. Deterministic Viability: {viability_score} ({grade}), Failure Prob: {failure_probability}%")
     return state

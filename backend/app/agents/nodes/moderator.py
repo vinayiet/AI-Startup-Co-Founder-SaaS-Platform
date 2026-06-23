@@ -10,6 +10,54 @@ logger = logging.getLogger("app.agents.moderator")
 async def moderator_node(state: AgentState) -> AgentState:
     run_id = state.get("run_id")
     await append_run_log(run_id, "[Assemble] Launching Moderator agent...")
+
+    # Run audit validation pass
+    await append_run_log(run_id, "[Assemble] Auditing financial and market consistency...")
+    warnings = []
+    try:
+        audit_system_prompt = (
+            "You are a financial and market data auditor. Compare the Serviceable Obtainable Market (SOM), "
+            "financial projections (Year 1 & 2 Revenue/Costs), and the break-even narrative for a startup.\n"
+            "Identify any clear contradictions:\n"
+            "1. Major scale mismatch: does the projected Year 1 or Year 2 revenue completely contradict the SOM? "
+            "(e.g. Year 1 revenue exceeds the SOM, or is 1000x smaller/larger than a realistic penetration of 0.1% to 10% of the SOM).\n"
+            "2. Break-even contradiction: does the break-even narrative claim a timeframe (e.g. 'break-even in 9-12 months') "
+            "that is mathematically impossible based on the Year 1 & Year 2 cost and revenue table (e.g. Year 1 and Year 2 costs exceed revenue, but it claims break-even in Year 1)?\n\n"
+            "Return a JSON list of strings containing warning messages. If everything is consistent, return []."
+        )
+        
+        # Structure projections cleanly
+        proj_dict = state.get("projections", {})
+        proj_str = ", ".join([f"{k}: {v}" for k, v in proj_dict.items()])
+        
+        audit_user_prompt = (
+            f"SOM: {state.get('som', 'N/A')}\n"
+            f"Projections: {proj_str}\n"
+            f"Break-even Narrative: {state.get('break_even', 'N/A')}"
+        )
+        
+        audit_response = await call_agent_llm(
+            system_prompt=audit_system_prompt,
+            user_prompt=audit_user_prompt,
+            agent_name="Financial Auditor"
+        )
+        warnings = json.loads(audit_response.strip().replace("```json", "").replace("```", "").strip(), strict=False)
+        if not isinstance(warnings, list):
+            warnings = []
+    except Exception as e:
+        logger.warning(f"Auditor failed: {e}")
+        warnings = []
+
+    retry_count = state.get("financial_retry_count", 0)
+    if warnings and retry_count < 1:
+        state["financial_retry_count"] = retry_count + 1
+        await append_run_log(run_id, f"[Self-Correction] Contradiction detected: {warnings[0]}. Retrying Financial Planner...")
+        # Import node here to avoid circular imports
+        from app.agents.nodes.financial_planner import financial_planner_node
+        state = await financial_planner_node(state)
+        # Re-run moderator
+        return await moderator_node(state)
+
     await append_run_log(run_id, "[Assemble] Aggregating all agent findings and compiling final report sections...")
 
     system_prompt = (
@@ -62,7 +110,9 @@ async def moderator_node(state: AgentState) -> AgentState:
                 pruned_competitors.append({
                     "name": c.get("name", ""),
                     "pricing": c.get("pricing", ""),
-                    "positioning": c.get("positioning", "")[:150]
+                    "positioning": c.get("positioning", "")[:150],
+                    "source_url": c.get("source_url", ""),
+                    "last_verified": c.get("last_verified", "")
                 })
             else:
                 pruned_competitors.append(c)
@@ -240,6 +290,16 @@ async def moderator_node(state: AgentState) -> AgentState:
     rc["critical_assumptions"] = rc.get("critical_assumptions") or state.get("critical_assumptions", [])
     rc["recommended_pivots"] = rc.get("recommended_pivots") or state.get("recommended_pivots", {})
     rc["reality_validator_report"] = state.get("reality_validator_report", {})
+
+    # Re-inject/ensure competitor link tags and sources remain intact
+    if "competitors" not in compiled:
+        compiled["competitors"] = {}
+    compiled["competitors"]["list"] = raw_competitors
+
+    if "financials" not in compiled:
+        compiled["financials"] = {}
+    compiled["financials"]["warnings"] = warnings
+    compiled["financials"]["needs_review"] = len(warnings) > 0
 
     state["report"] = data
     state["current_step"] = "Evaluation"

@@ -62,6 +62,26 @@ ADVISOR_PROMPTS = {
 }
 
 
+def get_incentive_framing(agent_name: str) -> str:
+    if agent_name in ["CEO Advisor", "Marketing Advisor", "Product Advisor"]:
+        return (
+            "INCENTIVE ORIENTATION: You are focused on UPSIDE, GROWTH, SPEED, and OPPORTUNITY. "
+            "You should strongly advocate for launching, capturing early market share, and validation velocity. "
+            "Downplay minor risks in favor of execution speed."
+        )
+    elif agent_name in ["CFO Advisor", "CTO Advisor", "Legal Advisor", "Risk Advisor"]:
+        return (
+            "INCENTIVE ORIENTATION: You are focused on DOWNSIDE, LIABILITY, COSTS, COMPLEXITY, and RISK MITIGATION. "
+            "You should act as a devil's advocate, questioning financial projections, compliance liabilities, "
+            "and technical over-engineering. Do not let optimistic growth claims go unchallenged."
+        )
+    else:
+        return (
+            "INCENTIVE ORIENTATION: You are BALANCED. Weigh the growth potential and product value against "
+            "defensive moats, user usability, and execution constraints. Make a pragmatic, structured assessment."
+        )
+
+
 async def run_advisor_debate_node(state: BoardMeetingState, agent_name: str) -> BoardMeetingState:
     meeting_id = state.get("meeting_id")
     topic = state.get("topic")
@@ -76,10 +96,18 @@ async def run_advisor_debate_node(state: BoardMeetingState, agent_name: str) -> 
     for entry in history:
         formatted_history += f"\n- {entry['agent_name']} (Stance: {entry['stance']}): {entry['content']}\n"
         
+    incentive_instruction = get_incentive_framing(agent_name)
     system_prompt = (
         f"{ADVISOR_PROMPTS[agent_name]}\n\n"
+        f"{incentive_instruction}\n\n"
+        "INDEPENDENCE OF JUDGMENT INSTRUCTION:\n"
+        "You must reach your conclusion independently based on your domain expertise. "
+        "Formulate your view and core arguments BEFORE reading other advisors' statements. "
+        "If your assessment differs from other advisors, say so explicitly. Do not default to agreement for the sake of consensus.\n\n"
         "You are participating in a multi-agent board meeting debate. Your output must challenge other advisors "
-        "and maintain your persona's core principles. Do not repeat what has already been said.\n\n"
+        "and maintain your persona's core principles. Do not repeat what has already been said. "
+        "State clearly what you agree with and disagree with, referencing prior comments if applicable, "
+        "but keep your main stance aligned with your specific role-appropriate incentive orientation.\n\n"
         "Return your debate stance strictly in JSON format with these exact keys:\n"
         "{\n"
         '  "stance": "supportive / skeptical / neutral",\n'
@@ -187,8 +215,15 @@ async def run_advisor_vote_node(state: BoardMeetingState, agent_name: str) -> Bo
     for entry in history:
         formatted_history += f"\n- {entry['agent_name']}: {entry['content']}\n"
 
+    incentive_instruction = get_incentive_framing(agent_name)
     system_prompt = (
         f"{ADVISOR_PROMPTS[agent_name]}\n\n"
+        f"{incentive_instruction}\n\n"
+        "INDEPENDENCE OF JUDGMENT INSTRUCTION:\n"
+        "You must cast your vote independently based on your domain expertise and your role's incentive orientation. "
+        "Do not default to agreement for the sake of consensus. If you are an upside-oriented advisor, favor Approve. "
+        "If you are a downside-oriented advisor, favor Reject or Approve with Caution if severe risks are unaddressed. "
+        "Be true to your persona.\n\n"
         "The board meeting debate has ended. You must cast your final vote on the topic.\n"
         "Return your vote strictly in JSON format with these exact keys:\n"
         "{\n"

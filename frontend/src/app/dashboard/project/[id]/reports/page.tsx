@@ -176,6 +176,19 @@ export default function ReportsWorkspace() {
                                 <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Section 02</span>
                                 <h2 className="text-xl font-black text-white tracking-tight">Market Sizing & Industry Demand</h2>
                             </div>
+
+                            {financials?.needs_review && financials?.warnings && financials.warnings.length > 0 && (
+                                <div className="bg-amber-950/20 border border-amber-500/30 p-4 rounded-xl space-y-2 text-xs text-amber-300">
+                                    <div className="font-bold flex items-center gap-1.5">
+                                        <span>⚠️</span> Cross-Section Consistency Notice (Needs Review)
+                                    </div>
+                                    <ul className="list-disc pl-4 space-y-1 text-zinc-300 font-sans">
+                                        {financials.warnings.map((warn: string, i: number) => (
+                                            <li key={i}>{warn}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                             <div className="glass-panel p-6 rounded-2xl border border-zinc-800 space-y-2">
                                 <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Demand Summary</h3>
                                 <p className="text-zinc-300 text-xs leading-relaxed">{market?.demand || market?.market_demand || "N/A"}</p>
@@ -255,7 +268,21 @@ export default function ReportsWorkspace() {
                                         {(competitors?.list || competitors?.competitors || []).map((comp: any, idx: number) => (
                                             <tr key={idx} className="hover:bg-zinc-900/35 transition-colors">
                                                 <td className="px-6 py-4.5 font-bold text-white text-xs">{comp.name}</td>
-                                                <td className="px-6 py-4.5 text-purple-400 font-semibold text-xs">{comp.pricing}</td>
+                                                <td className="px-6 py-4.5 text-purple-400 font-semibold text-xs">
+                                                    <div>{comp.pricing}</div>
+                                                    {(comp.last_verified || comp.source_url) && (
+                                                        <div className="text-[10px] text-zinc-500 mt-1 font-normal space-y-0.5">
+                                                            {comp.last_verified && <div>Verified: {comp.last_verified}</div>}
+                                                            {comp.source_url && comp.source_url !== "data not found" && (
+                                                                <div>
+                                                                    <a href={comp.source_url} target="_blank" rel="noopener noreferrer" className="text-purple-400/80 hover:text-purple-300 underline break-all">
+                                                                        Source Link
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-4.5 text-zinc-350 leading-relaxed text-xs">{comp.positioning}</td>
                                             </tr>
                                         ))}
@@ -600,6 +627,19 @@ export default function ReportsWorkspace() {
                                 <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Section 06</span>
                                 <h2 className="text-xl font-black text-white tracking-tight">Financial Forecasts & Projections</h2>
                             </div>
+
+                            {financials?.needs_review && financials?.warnings && financials.warnings.length > 0 && (
+                                <div className="bg-amber-950/20 border border-amber-500/30 p-4 rounded-xl space-y-2 text-xs text-amber-300">
+                                    <div className="font-bold flex items-center gap-1.5">
+                                        <span>⚠️</span> Cross-Section Consistency Notice (Needs Review)
+                                    </div>
+                                    <ul className="list-disc pl-4 space-y-1 text-zinc-300 font-sans">
+                                        {financials.warnings.map((warn: string, i: number) => (
+                                            <li key={i}>{warn}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                             <div className="glass-panel p-6 rounded-2xl border border-zinc-800 space-y-2">
                                 <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Revenue Model & Monetization</h3>
                                 <p className="text-zinc-300 text-xs leading-relaxed">{financials?.revenue_model || "N/A"}</p>

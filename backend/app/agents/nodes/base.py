@@ -106,6 +106,7 @@ def query_rag_for_agent(query: str, project_id: Optional[str] = None) -> str:
 
 
 def get_web_search_results(query: str) -> List[Dict[str, Any]]:
+    import ssl
     url = "https://lite.duckduckgo.com/lite/"
     data = urllib.parse.urlencode({"q": query}).encode("utf-8")
     req = urllib.request.Request(
@@ -115,15 +116,20 @@ def get_web_search_results(query: str) -> List[Dict[str, Any]]:
     )
     results = []
     try:
-        with urllib.request.urlopen(req, timeout=4) as response:
+        context = ssl._create_unverified_context()
+        with urllib.request.urlopen(req, timeout=10, context=context) as response:
             html = response.read().decode("utf-8")
-            titles = re.findall(r'<a[^>]*class=["\']result-link["\'][^>]*>(.*?)</a>', html, re.DOTALL)
+            # Try to match anchor tags with result-link class
+            matches = re.findall(r'<a[^>]+href=["\']([^"\']+)["\'][^>]*class=["\']result-link["\'][^>]*>(.*?)</a>', html, re.DOTALL)
+            if not matches:
+                matches = re.findall(r'<a[^>]+class=["\']result-link["\'][^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html, re.DOTALL)
             snippets = re.findall(r'<[^>]*class=["\']result-snippet["\'][^>]*>(.*?)(?:</td>|</div>)', html, re.DOTALL)
             
-            for i in range(min(len(titles), len(snippets))):
-                t = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', '', titles[i])).strip()
+            for i in range(min(len(matches), len(snippets))):
+                link, raw_title = matches[i]
+                t = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', '', raw_title)).strip()
                 s = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', '', snippets[i])).strip()
-                results.append({"title": t, "snippet": s})
+                results.append({"title": t, "snippet": s, "link": link})
     except Exception as e:
         logger.error(f"DuckDuckGo search error in base search helper: {e}")
     return results
