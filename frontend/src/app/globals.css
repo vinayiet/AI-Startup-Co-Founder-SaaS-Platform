@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: only light;
   --background: #f8fafc; /* Slate 50 */
   --foreground: #0f172a; /* Slate 900 */
 }
@@ -45,6 +46,7 @@ body {
 }
 
 .sidebar-gradient {
+  background-color: #f8fafc;
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   border-right: 1px solid rgba(15, 23, 42, 0.06);
 }

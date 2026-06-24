@@ -158,9 +158,9 @@ export default function ProjectWorkspace() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-zinc-400 text-sm font-sans tracking-wide">
+            <div className="min-h-screen bg-[#f8fafc] bg-grid-pattern flex items-center justify-center text-slate-500 text-sm font-sans tracking-wide">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-indigo-650 border-t-transparent rounded-full animate-spin" />
                     <span>Initializing project workspace...</span>
                 </div>
             </div>

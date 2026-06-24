@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
@@ -7,6 +7,10 @@ const outfit = Outfit({
   subsets: ["latin"],
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  colorScheme: "only light",
+};
 
 export const metadata: Metadata = {
   title: "AI Startup Co-Founder - Production-Grade Idea Validation",
