@@ -107,6 +107,17 @@ export default function ProjectWorkspace() {
         }
     }
 
+    async function handleRetryRun() {
+        if (!activeRun) return;
+        try {
+            await api.post(`/projects/runs/${activeRun.id}/retry`);
+            loadActiveRun();
+        } catch (err) {
+            const error = err as Error;
+            alert(error.message || "Failed to retry analysis.");
+        }
+    }
+
     async function handleApprove() {
         if (!activeRun) return;
         setSubmittingApproval(true);
@@ -555,6 +566,36 @@ export default function ProjectWorkspace() {
                                     className="w-full bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold py-3.5 rounded-xl shadow-sm transition-all text-xs uppercase tracking-wider"
                                 >
                                     {submittingApproval ? "Submitting Checkpoint..." : "✓ Approve & Continue Run"}
+                                </button>
+                            </div>
+                        </div>
+                    ) : activeRun.status === "failed" ? (
+                        /* Failed View */
+                        <div className="max-w-md mx-auto w-full text-center space-y-6 py-10">
+                            <div className="relative inline-flex items-center justify-center">
+                                <div className="absolute inset-0 bg-rose-500/10 rounded-full blur-2xl animate-pulse" />
+                                <div className="w-20 h-20 rounded-3xl bg-white border border-slate-200 flex items-center justify-center text-4xl shadow-md relative z-10">
+                                    ❌
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-black text-slate-900 tracking-tight">Process Failed</h3>
+                                <p className="text-slate-500 text-sm leading-relaxed">
+                                    The agent pipeline encountered an error during the <b>{activeRun.current_step}</b> step. You can retry the process from where it left off, or start a new run entirely.
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-3 mt-4">
+                                <button
+                                    onClick={handleRetryRun}
+                                    className="w-full bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold py-3.5 rounded-xl shadow-sm transition-all text-xs uppercase tracking-wider"
+                                >
+                                    ↻ Retry Failed Step
+                                </button>
+                                <button
+                                    onClick={handleTriggerRun}
+                                    className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3.5 rounded-xl shadow-sm transition-all text-xs uppercase tracking-wider"
+                                >
+                                    Start Fresh Run
                                 </button>
                             </div>
                         </div>

@@ -100,3 +100,16 @@ async def approve_run(
         approval_data=approval_in.model_dump()
     )
     return response
+
+@router.post("/runs/{run_id}/retry")
+async def retry_run(
+    run_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    project_service = ProjectService(db)
+    response = await project_service.retry_run(
+        user_id=current_user.id,
+        run_id=run_id
+    )
+    return response

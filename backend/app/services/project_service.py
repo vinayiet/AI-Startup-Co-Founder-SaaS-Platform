@@ -156,3 +156,25 @@ class ProjectService:
         resume_agent_workflow_task.delay(str(run.id))
 
         return {"status": "resumed"}
+
+    async def retry_run(self, user_id: uuid.UUID, run_id: uuid.UUID) -> Dict[str, Any]:
+        run = await self.get_run(user_id, run_id)
+        if run.status != "failed":
+            raise ValidationException("Only failed runs can be retried.")
+
+        # Update run status to resuming
+        run.status = "running"
+        
+        # Append to logs
+        logs = dict(run.logs or {"steps": []})
+        logs["steps"].append("Retrying failed execution from last saved checkpoint...")
+        run.logs = logs
+
+        await self.db.flush()
+        await self.db.commit()
+
+        # Resume Celery task
+        from app.tasks.main import resume_agent_workflow_task
+        resume_agent_workflow_task.delay(str(run.id))
+
+        return {"status": "retrying"}

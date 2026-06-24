@@ -99,7 +99,7 @@ def query_rag_for_agent(query: str, project_id: Optional[str] = None) -> str:
         return "No additional framework document context found in knowledge base."
     
     context_str = ""
-    for r in results:
+    for r in results[:2]:
         meta = r["metadata"]
         context_str += f"\n- [{meta['source_title']} (Page {meta['page']})]: {r['content']}\n"
     return context_str
@@ -125,10 +125,12 @@ def get_web_search_results(query: str) -> List[Dict[str, Any]]:
                 matches = re.findall(r'<a[^>]+class=["\']result-link["\'][^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html, re.DOTALL)
             snippets = re.findall(r'<[^>]*class=["\']result-snippet["\'][^>]*>(.*?)(?:</td>|</div>)', html, re.DOTALL)
             
-            for i in range(min(len(matches), len(snippets))):
+            for i in range(min(len(matches), len(snippets), 3)):
                 link, raw_title = matches[i]
                 t = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', '', raw_title)).strip()
                 s = re.sub(r'\s+', ' ', re.sub(r'<[^>]*>', '', snippets[i])).strip()
+                if len(s) > 250:
+                    s = s[:247] + "..."
                 results.append({"title": t, "snippet": s, "link": link})
     except Exception as e:
         logger.error(f"DuckDuckGo search error in base search helper: {e}")
