@@ -13,6 +13,10 @@ async def financial_planner_node(state: AgentState) -> AgentState:
     som = state.get("som", "")
     infra_costs = state.get("infra_costs", "")
     competitors = state.get("competitors", [])
+    viability_score = state.get("viability_score", 0.0)
+    failure_probability = state.get("failure_probability", 0.0)
+    rv_report = state.get("reality_validator_report", {})
+    cac = rv_report.get("cac", "Not specified - Estimate conservatively")
 
     await append_run_log(run_id, "[Analyze] Launching Financial Planner agent...")
     await append_run_log(run_id, "[Analyze] Querying static knowledge base for financial projection templates...")
@@ -24,15 +28,32 @@ async def financial_planner_node(state: AgentState) -> AgentState:
     await append_run_log(run_id, "[Analyze] Structuring revenue models, computing Year 1 & Year 2 projections, and identifying break-even margins in INR...")
 
     system_prompt = (
-        "You are an expert CFO. Define the startup's revenue model, project revenue and operational costs "
-        "for Year 1 and Year 2, and identify the break-even requirements.\n"
-        "IMPORTANT: You must write and present all financial costs, revenues, and projections in Indian Rupees (₹ / INR).\n"
-        "IMPORTANT CONSTRAINTS FOR MATHEMATICAL & LOGICAL CONSISTENCY:\n"
-        "1. Your revenue projections MUST scale realistically with the estimated Serviceable Obtainable Market (SOM) provided in the user prompt. "
-        "For example, Year 1 and Year 2 revenues should represent a logical market penetration percentage (e.g. 0.5% to 5%) of the SOM, not exceed the SOM, and not be 1000x smaller than target customer pricing suggest.\n"
-        "2. Your operational costs projections MUST incorporate the Infrastructure Costs specified in the user prompt as a cost baseline.\n"
-        "3. Stated break-even timeframe MUST match the cost/revenue table. For example, if you claim a break-even point around 9-12 months, "
-        "then either Year 1 Revenue must exceed Year 1 Costs, or you must specify that by Year 2 revenue exceeds costs and outline exactly which month of Year 1/2 the crossover happens. If costs exceed revenue in both Year 1 and Year 2, the break-even point is in Year 3 or later.\n\n"
+        "You are a conservative, data-grounded Financial Planner for an early-stage startup.\n\n"
+        "Before generating any financial projections, you MUST read and honour the "
+        "following outputs from the upstream agents in the pipeline state:\n\n"
+        "- `reality_validator.viability_score` — if below 50, all projections must "
+        "reflect high-risk, conservative assumptions\n"
+        "- `reality_validator.failure_probability` — use this to apply a discount "
+        "multiplier to revenue projections\n"
+        "- `reality_validator.cac` — customer acquisition cost MUST be used as the "
+        "foundation of your revenue build, not assumed independently\n"
+        "- `competitor_intel.pricing` — your revenue per customer must be benchmarked "
+        "against verified competitor pricing, not generated in isolation\n\n"
+        "PROJECTION RULES:\n"
+        "1. Build revenue bottom-up: start from a realistic Year 1 customer count "
+        "(never assume more than 0.01% of SAM in Year 1), multiply by ARPU, "
+        "then subtract CAC × acquired customers to get net revenue.\n"
+        "2. If failure_probability > 60%, Year 1 revenue must reflect a conservative "
+        "scenario only. Do not generate optimistic projections.\n"
+        "3. Cost projections must include: engineering salaries, infrastructure, "
+        "sales & marketing (CAC × target customers), legal, and operational overhead.\n"
+        "4. The gap between revenue and costs must be explainable line by line.\n"
+        "5. Break-even must be calculated from actual cost and revenue figures — "
+        "not stated independently.\n\n"
+        "NEVER generate revenue figures that contradict a high failure probability "
+        "or a low viability score from the Reality Validator. These signals must "
+        "flow forward into your numbers.\n\n"
+        "Output your projections in INR with a bottom-up working shown clearly.\n\n"
         f"Finance Guidelines:\n{rag_context}\n"
         "Return your analysis strictly in JSON format with these exact keys:\n"
         '{"revenue_model": "...", "projections": {"Year 1 Revenue": "...", "Year 1 Costs": "...", "Year 2 Revenue": "...", "Year 2 Costs": "..."}, "break_even": "..."}'
@@ -46,7 +67,10 @@ async def financial_planner_node(state: AgentState) -> AgentState:
         f"Critical Assumptions: {assumptions}\n"
         f"Estimated Serviceable Obtainable Market (SOM): {som}\n"
         f"Starting Infrastructure Costs: {infra_costs}\n"
-        f"Competitors pricing & positioning: {json.dumps(competitors, separators=(',', ':'))}"
+        f"Competitors pricing & positioning: {json.dumps(competitors, separators=(',', ':'))}\n"
+        f"Reality Validator Viability Score: {viability_score}\n"
+        f"Reality Validator Failure Probability: {failure_probability}%\n"
+        f"Reality Validator CAC: {cac}"
     )
 
     response_text = await call_agent_llm(
