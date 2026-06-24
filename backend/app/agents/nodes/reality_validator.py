@@ -135,13 +135,13 @@ async def reality_validator_node(state: AgentState) -> AgentState:
     viability_score = round((fmf * 0.20 + timing * 0.15 + comp * 0.15 + cac * 0.20 + rev * 0.15 + tech * 0.15) * 10.0, 1)
     failure_probability = round(100.0 - viability_score, 1)
 
-    if viability_score >= 90:
+    if viability_score >= 85:
         grade = "A"
-    elif viability_score >= 80:
-        grade = "B"
     elif viability_score >= 70:
+        grade = "B"
+    elif viability_score >= 55:
         grade = "C"
-    elif viability_score >= 60:
+    elif viability_score >= 40:
         grade = "D"
     else:
         grade = "F"
