@@ -42,7 +42,9 @@ async def reality_validator_node(state: AgentState) -> AgentState:
         "2. Provide a realistic assessment of timing (e.g. Saturated, Too Early, Too Late) with 0-100 confidence.\n"
         "3. Estimate customer acquisition difficulty and provide a realistic CAC range in local currency (e.g., INR ₹).\n"
         "4. Provide a rating from 1 to 10 for each of the core assessment dimensions (fmf, timing, competition, acquisition, revenue, and technical feasibility).\n"
-        "5. Recommend concrete pivots, repositioning opportunities, and MVP scope reductions.\n\n"
+        "   CRITICAL: Do NOT default to safe 5/10 scores. Actively differentiate based on the idea's realism. If the idea is high risk/unproven, score it 1-3. If it is highly viable, score it 8-10.\n"
+        "5. Recommend concrete pivots, repositioning opportunities, and MVP scope reductions.\n"
+        "   CRITICAL: Pivot recommendations MUST be hyper-specific to the startup's unique domain, market, and execution constraints. Do NOT use generic, templated advice (e.g. 'focus on a niche').\n\n"
         f"Live Web Search Context on Failure Risks:\n{web_context}\n\n"
         f"Framework Context:\n{rag_context}\n\n"
         "Return your analysis strictly in JSON format with these exact keys:\n"
@@ -163,6 +165,7 @@ async def reality_validator_node(state: AgentState) -> AgentState:
     state["critical_assumptions"] = list(data.get("critical_assumptions", []))
     state["recommended_pivots"] = data.get("pivots", {})
     state["reality_validator_report"] = data
+    state["cac_estimate"] = data.get("customer_acquisition", {}).get("estimated_cac", "Not specified")
 
     state["current_step"] = "Technical Architect"
 

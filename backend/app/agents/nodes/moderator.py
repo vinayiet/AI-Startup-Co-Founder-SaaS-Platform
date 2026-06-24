@@ -63,6 +63,10 @@ async def moderator_node(state: AgentState) -> AgentState:
     system_prompt = (
         "You are the Moderator Agent. Your goal is to combine the findings of all preceding agents "
         "into a single cohesive summary and structured document. Eliminate any logical contradictions.\n\n"
+        "CRITICAL RULE: Adapt the narrative tone of the 'summary' and overall report based on the provided Viability Score.\n"
+        "  - If Viability Score < 40: Adopt a highly cautionary, critical, and brutally honest tone.\n"
+        "  - If Viability Score > 70: Adopt an optimistic, supportive, and validating tone.\n"
+        "  - Otherwise: Maintain an objective and balanced tone.\n\n"
         "Return your analysis strictly in JSON format with these exact keys:\n"
         "{\n"
         '  "summary": "A 2-3 sentence executive summary of the validation report.",\n'

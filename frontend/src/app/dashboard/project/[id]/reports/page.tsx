@@ -470,9 +470,16 @@ export default function ReportsWorkspace() {
                                             <span className="text-[8px] font-bold text-slate-500 uppercase">Grade {reality_check?.viability_grade || "F"}</span>
                                         </div>
                                     </div>
+                                    <div className="mt-2 text-[9px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
+                                        Fundable Target: 70+
+                                    </div>
                                     <p className="text-[10px] text-slate-500 mt-4 leading-relaxed italic font-medium">
                                         &ldquo;{reality_check?.reality_validator_report?.viability?.summary || reality_check?.summary || "No validation summary."}&rdquo;
                                     </p>
+                                    <div className="mt-4 pt-3 border-t border-slate-100 w-full text-center">
+                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Grade Scale</p>
+                                        <p className="text-[8px] text-slate-500 font-medium">A: ≥85 | B: ≥70 | C: ≥55 | D: ≥40 | F: &lt;40</p>
+                                    </div>
                                 </div>
 
                                 {/* Failure Probability Card */}
