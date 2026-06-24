@@ -62,20 +62,23 @@ async def financial_planner_node(state: AgentState) -> AgentState:
         "  - Operational overhead\n"
         "  Total costs = sum of all above line items\n\n"
         "Step 4 — Break-even:\n"
-        "  Calculate from actual cost and revenue figures only.\n"
-        "  Do not state break-even independently of the numbers.\n\n"
+        "  Calculate the exact month and year of break-even based on actual cost and revenue figures.\n"
+        "  NEVER output 'Not calculated'. If it breaks even after Year 2, state 'Beyond Year 2 (Estimated Month X)'.\n\n"
         "Step 5 — Consistency Check:\n"
         "  If viability_score < 50 and your Year 1 revenue projection "
         "exceeds 10× your Year 1 cost projection, you have made an "
         "error. Recalculate before outputting.\n\n"
+        "Step 6 — STRICT COMPLETENESS:\n"
+        "  You MUST calculate and populate EVERY field: Year 1 Revenue, Year 1 Costs, Year 2 Revenue, Year 2 Costs, and break_even.\n"
+        "  NEVER output 'Not calculated' or 'N/A' for any of these. Force a grounded estimate if needed.\n\n"
         "OUTPUT FORMAT:\n"
         "Show your working for every number in your output.\n"
         "No projection should appear without a derivation.\n"
         "Flag any assumption you have made that is not grounded "
         "in upstream pipeline data.\n\n"
         f"Finance Guidelines:\n{rag_context}\n"
-        "Return your analysis strictly in JSON format with these exact keys. Include your derivations/workings inside the respective fields:\n"
-        '{"revenue_model": "...", "projections": {"Year 1 Revenue": "...", "Year 1 Costs": "...", "Year 2 Revenue": "...", "Year 2 Costs": "..."}, "break_even": "..."}'
+        "Return your analysis strictly in JSON format with these exact keys. Use 'projections_working' and 'break_even_working' to show your step-by-step math derivations before outputting the final numbers:\n"
+        '{"revenue_model": "...", "projections_working": "...", "projections": {"Year 1 Revenue": "...", "Year 1 Costs": "...", "Year 2 Revenue": "...", "Year 2 Costs": "..."}, "break_even_working": "...", "break_even": "..."}'
     )
 
     user_prompt = (
